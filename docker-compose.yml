@@ -1,0 +1,7 @@
+version: '3.0'
+services:
+  llm-server:
+    build: .
+    image: chosh040/llm_flask
+    ports:
+      - 5001:5000

@@ -4,8 +4,9 @@ WORKDIR /app
 
 COPY requirements.txt /app/
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir -r requirements.txt
 
-COPY . /app
+COPY .. /app
+COPY .env /app/.env
 
 CMD ["sh", "-c", "gunicorn -b 0.0.0.0:5000 app:app"]

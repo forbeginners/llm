@@ -11,43 +11,40 @@ from outputParser import extract_categories_parser
 
 load_dotenv()
 
-def initialize_vectorstore():
-    index_name = 'categories'
-    embeddings = OpenAIEmbeddings()
-
-    pc = Pinecone(
-        api_key=os.environ['PINECONE_API_KEY']
-    )
-    return pcRAG.from_existing_index(index_name, embeddings), embeddings, pc.Index(index_name)
-
-
-def save_new_category_to_pinecone(new_category, vectorstore, embeddings):
-    # 벡터화된 카테고리를 Pinecone에 저장
-    vector = embeddings.embed_query(new_category)
-
-    vector_id = str(uuid.uuid4())
-    vectorstore.upsert([{
-        'id': vector_id,
-        'values': vector,
-        'metadata': {
-            'text': new_category
-        }
-    }])
-
-
-def check_if_category_exists(category, vectorstore, embeddings):
-    # 카테고리가 인덱스 안에 존재하는지 확인
-    vector = embeddings.embed_query(category)
-    result = vectorstore.query(vector=[vector], top_k=5)
-    # 가장 유사한 결과의 점수가 일정 임계값 이상인지 확인
-    if result['matches'] and result['matches'][0]['score'] > 0.9:  # 유사도가 0.8 이상이면 존재한다고 판단
-        return True
-    return False
-
 llm = ChatOpenAI(
     model=os.environ['GOAL_MODEL'],
     temperature=os.environ['GOAL_TEMP']
 )
+def initialize_vectorstore():
+    index_name = os.environ["PINECONE_INDEX"]
+    embeddings = OpenAIEmbeddings()
+    return Pinecone.from_existing_index(index_name, embeddings)
+
+# def save_new_category_to_pinecone(new_category, vectorstore, embeddings):
+#     # 벡터화된 카테고리를 Pinecone에 저장
+#     vector = embeddings.embed_query(new_category)
+#
+#     vector_id = str(uuid.uuid4())
+#     vectorstore.upsert([{
+#         'id': vector_id,
+#         'values': vector,
+#         'metadata': {
+#             'text': new_category
+#         }
+#     }])
+#
+#
+# def check_if_category_exists(category, vectorstore, embeddings):
+#     # 카테고리가 인덱스 안에 존재하는지 확인
+#     vector = embeddings.embed_query(category)
+#     result = vectorstore.query(vector=[vector], top_k=5)
+#     # 가장 유사한 결과의 점수가 일정 임계값 이상인지 확인
+#     if result['matches'] and result['matches'][0]['score'] > 0.9:  # 유사도가 0.8 이상이면 존재한다고 판단
+#         return True
+#     return False
+
+
+
 
 format_instructions = extract_categories_parser.get_format_instructions()
 
@@ -62,7 +59,7 @@ template = """
 추출된 카테고리:
 {format_instructions}
 """
-vectorstore, embeddings, index = initialize_vectorstore()
+vectorstore = initialize_vectorstore()
 
 retriever = vectorstore.as_retriever(
     search_type='mmr',
@@ -93,20 +90,3 @@ if __name__ == "__main__":
             "categories": docs
         }
     )
-
-    # print(f"docs : {docs}")
-    # 검색된 카테고리에서 가져온 기존 카테고리
-    existing_categories = [doc.page_content for doc in docs]
-
-    # print(f"result : {result}")
-    # print(f"existing_categories : {existing_categories}")
-    #
-    # # 인덱스 내에서 카테고리가 있는지 확인하고, 없는 경우에만 추가
-
-    #  TODO 개선되어야함
-    for category in result.categories:
-        if category not in existing_categories:
-            # 인덱스 내에 카테고리 존재 여부 확인
-            if not check_if_category_exists(category, index, embeddings):
-                save_new_category_to_pinecone(category, index, embeddings)
-                # print(f"새로 저장된 카테고리: {category}")
