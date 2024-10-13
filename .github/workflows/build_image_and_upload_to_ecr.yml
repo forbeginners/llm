@@ -56,7 +56,3 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-
-      - name: Update docker-compose with image tag
-        run: |
-          sed -i 's|image:.*|image: $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}|g' docker-compose-prod.yml
